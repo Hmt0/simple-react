@@ -1,2 +1,2 @@
-# simple-react
-从0开始实现一个react
+# simple-React
+从0开始实现一个React

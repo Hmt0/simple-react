@@ -3,11 +3,11 @@ function createElement(type, props, ...children) {
         type: type,
         props: {
             ...props,
-            children: children.map(child => {
+            children: children.map(child => 
                 typeof child === 'object'
                     ? child
                     : createTextNode(child)
-            }),
+            ),
         },
     }
 }
@@ -17,7 +17,7 @@ function createTextNode(text) {
         type: "TEXT_ELEMENT",
         props: {
             nodeValue: text,
-            child: [],
+            children: [],
         },
     }
 }
@@ -25,7 +25,7 @@ function createTextNode(text) {
 function render(element, container) {
     const dom = 
         element.type == "TEXT_ELEMENT"
-        ? document.createElement("")
+        ? document.createTextNode("")
         : document.createElement(element.type)
 
     const isProperty = key => key !== "children"
@@ -46,7 +46,6 @@ const Didact = {
     render,
 }
 
-
 /** @jsx Didact.createElement */
 const element = (
     <div id="foo">
@@ -54,6 +53,8 @@ const element = (
         <b />
     </div>
 )
+
+
 
 const container = document.getElementById("root")
 Didact.render(element, container)
