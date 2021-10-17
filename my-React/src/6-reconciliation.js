@@ -74,28 +74,8 @@ function performUnitOfWork(fiber) {
     }
     // TODO create new fibers
     const elements = fiber.props.children
-    let index = 0
-    let prevSibling = null
-
-    while(index < elements.length) {
-        const element = elements[index]
-
-        const newFiber = {
-            type: element.type,
-            props: element.props,
-            parent: fiber,
-            dom: null
-        }
-
-        if(index === 0) {
-            fiber.child = element
-        } else {
-            prevSibling.sibling = newFiber
-        }
-
-        prevSibling = newFiber
-        index++
-    }
+    reconcileChildren(fiber, elements)
+    
     // TODO return next unit of work
     if(fiber.child) {
         return fiber.child
@@ -106,6 +86,60 @@ function performUnitOfWork(fiber) {
             return nextFiber.sibling
         }
         nextFiber = nextFiber.parent
+    }
+}
+
+function reconcileChildren(wipFiber, elements) {
+    let index = 0
+    let oldFiber = 
+        wipFiber.alternate && wipFiber.alternate.child
+    let prevSibling = null
+
+    while(
+        index < elements.length ||
+        oldFiber != null
+    ) {
+        const element = elements[index]
+
+        const sameType = 
+            oldFiber &&
+            element &&
+            element.type == oldFiber.type
+
+        if(sameType) {
+            newFiber = {
+                type: oldFiber.type,
+                props: element.props,
+                dom: oldFiber.dom,
+                parent: wipFiber,
+                alternate: oldFiber,
+                effectTag: "UPDATE",
+            }
+        }
+
+        if(element && !sameType) {
+
+        }
+
+        if(oldFiber && !sameType) {
+
+        }
+
+        const newFiber = {
+            type: element.type,
+            props: element.props,
+            parent: wipFiber,
+            dom: null
+        }
+
+        if(index === 0) {
+            wipFiber.child = element
+        } else {
+            prevSibling.sibling = newFiber
+        }
+
+        prevSibling = newFiber
+        index++
     }
 }
 
