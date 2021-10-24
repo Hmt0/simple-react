@@ -49,6 +49,23 @@ function render(element, container) {
   container.appendChild(dom);
 }
 
+var nextUnitOfWork = null; // 在我们完成每个单元后，如果有任何其他需要做的事情，我们会让浏览器中断渲染。
+
+function workLoop(deadline) {
+  var shouldYield = false;
+
+  while (nextUnitOfWork && !shouldYield) {
+    nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
+    shouldYield = deadline.timeRemaining() < 1;
+  }
+
+  requestIdleCallback(workLoop);
+}
+
+requestIdleCallback(workLoop);
+
+function performUnitOfWork(nextUnitOfWork) {}
+
 var Didact = {
   createElement: createElement,
   render: render

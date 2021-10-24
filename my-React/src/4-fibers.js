@@ -50,10 +50,14 @@ function workLoop(deadline) {
     requestIdleCallback(workLoop)
 }
 
+requestIdleCallback(workLoop)
+
 function performUnitOfWork(fiber) {
+    console.log("next", fiber)
     // TODO add dom node
     if(!fiber.dom) {
-        fiber.dom = createDom(fiber)
+        // fiber.dom = createDom(fiber)
+        fiber.dom = createElement(fiber)
     }
     if(fiber.parent) {
         fiber.parent.dom.appendChild(fiber.dom)

@@ -33,20 +33,82 @@ function createTextNode(text) {
   };
 }
 
+function createDom(fiber) {}
+
 function render(element, container) {
-  var dom = element.type == "TEXT_ELEMENT" ? document.createTextNode("") : document.createElement(element.type);
-
-  var isProperty = function isProperty(key) {
-    return key !== "children";
+  nextUnitOfWork = {
+    dom: container,
+    props: {
+      children: [element]
+    }
   };
+}
 
-  Object.keys(element.props).filter(isProperty).forEach(function (name) {
-    dom[name] = element.props[name];
-  });
-  element.props.children.forEach(function (child) {
-    return render(child, dom);
-  });
-  container.appendChild(dom);
+var nextUnitOfWork = null; // 在我们完成每个单元后，如果有任何其他需要做的事情，我们会让浏览器中断渲染。
+
+function workLoop(deadline) {
+  var shouldYield = false;
+
+  while (nextUnitOfWork && !shouldYield) {
+    nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
+    shouldYield = deadline.timeRemaining() < 1;
+  }
+
+  requestIdleCallback(workLoop);
+}
+
+requestIdleCallback(workLoop);
+
+function performUnitOfWork(fiber) {
+  console.log("next", fiber); // TODO add dom node
+
+  if (!fiber.dom) {
+    // fiber.dom = createDom(fiber)
+    fiber.dom = createElement(fiber);
+  }
+
+  if (fiber.parent) {
+    fiber.parent.dom.appendChild(fiber.dom);
+  } // TODO create new fibers
+
+
+  var elements = fiber.props.children;
+  var index = 0;
+  var prevSibling = null;
+
+  while (index < elements.length) {
+    var _element = elements[index];
+    var newFiber = {
+      type: _element.type,
+      props: _element.props,
+      parent: fiber,
+      dom: null
+    };
+
+    if (index === 0) {
+      fiber.child = _element;
+    } else {
+      prevSibling.sibling = newFiber;
+    }
+
+    prevSibling = newFiber;
+    index++;
+  } // TODO return next unit of work
+
+
+  if (fiber.child) {
+    return fiber.child;
+  }
+
+  var nextFiber = fiber;
+
+  while (nextFiber) {
+    if (nextFiber.sibling) {
+      return nextFiber.sibling;
+    }
+
+    nextFiber = nextFiber.parent;
+  }
 }
 
 var Didact = {

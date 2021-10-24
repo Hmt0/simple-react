@@ -33,20 +33,99 @@ function createTextNode(text) {
   };
 }
 
+function commitRoot() {
+  // TODO add nodes to dom
+  console.log("wiproot child", wipRoot.child);
+  commitWork(wipRoot.child);
+  wipRoot = null;
+}
+
+function commitWork(fiber) {
+  console.log("fiber", fiber, fiber.parent);
+
+  if (!fiber) {
+    return;
+  }
+
+  var domParent = fiber.parent.dom;
+  domParent.appendChild(fiber.dom);
+  commitWork(fiber.child);
+  commitWork(fiber.sibling);
+}
+
 function render(element, container) {
-  var dom = element.type == "TEXT_ELEMENT" ? document.createTextNode("") : document.createElement(element.type);
-
-  var isProperty = function isProperty(key) {
-    return key !== "children";
+  wipRoot = {
+    dom: container,
+    props: {
+      children: [element]
+    }
   };
+  nextUnitOfWork = wipRoot;
+}
 
-  Object.keys(element.props).filter(isProperty).forEach(function (name) {
-    dom[name] = element.props[name];
-  });
-  element.props.children.forEach(function (child) {
-    return render(child, dom);
-  });
-  container.appendChild(dom);
+var nextUnitOfWork = null;
+var wipRoot = null; // 在我们完成每个单元后，如果有任何其他需要做的事情，我们会让浏览器中断渲染。
+
+function workLoop(deadline) {
+  var shouldYield = false;
+
+  while (nextUnitOfWork && !shouldYield) {
+    nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
+    shouldYield = deadline.timeRemaining() < 1;
+  }
+
+  if (!nextUnitOfWork && wipRoot) {
+    commitRoot();
+  }
+
+  requestIdleCallback(workLoop);
+}
+
+function performUnitOfWork(fiber) {
+  console.log("performUnitOfWork", fiber); // TODO add dom node
+
+  if (!fiber.dom) {
+    fiber.dom = createElement(fiber);
+  } // TODO create new fibers
+
+
+  var elements = fiber.props.children;
+  var index = 0;
+  var prevSibling = null;
+
+  while (index < elements.length) {
+    var _element = elements[index];
+    var newFiber = {
+      type: _element.type,
+      props: _element.props,
+      parent: fiber,
+      dom: null
+    };
+
+    if (index === 0) {
+      fiber.child = _element;
+    } else {
+      prevSibling.sibling = newFiber;
+    }
+
+    prevSibling = newFiber;
+    index++;
+  } // TODO return next unit of work
+
+
+  if (fiber.child) {
+    return fiber.child;
+  }
+
+  var nextFiber = fiber;
+
+  while (nextFiber) {
+    if (nextFiber.sibling) {
+      return nextFiber.sibling;
+    }
+
+    nextFiber = nextFiber.parent;
+  }
 }
 
 var Didact = {
@@ -60,3 +139,4 @@ var element = Didact.createElement("div", {
 }, Didact.createElement("a", null, "bar"), Didact.createElement("b", null));
 var container = document.getElementById("root");
 Didact.render(element, container);
+requestIdleCallback(workLoop);

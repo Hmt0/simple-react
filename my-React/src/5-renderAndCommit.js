@@ -22,17 +22,16 @@ function createTextNode(text) {
     }
 }
 
-function createDom(fiber) {
-
-}
 
 function commitRoot() {
     // TODO add nodes to dom
+    console.log("wiproot child", wipRoot.child)
     commitWork(wipRoot.child)
     wipRoot = null
 }
 
 function commitWork(fiber) {
+    console.log("fiber", fiber, fiber.parent)
     if(!fiber) {
         return
     }
@@ -64,19 +63,24 @@ function workLoop(deadline) {
         )
         shouldYield = deadline.timeRemaining() < 1
     }
+
+    if (!nextUnitOfWork && wipRoot) {
+        commitRoot()
+    }
     requestIdleCallback(workLoop)
 }
 
 function performUnitOfWork(fiber) {
+    console.log("performUnitOfWork", fiber)
     // TODO add dom node
     if(!fiber.dom) {
-        fiber.dom = createDom(fiber)
+        fiber.dom = createElement(fiber)
     }
     // TODO create new fibers
     const elements = fiber.props.children
     let index = 0
     let prevSibling = null
-
+    
     while(index < elements.length) {
         const element = elements[index]
 
@@ -126,3 +130,4 @@ const element = (
 
 const container = document.getElementById("root")
 Didact.render(element, container)
+requestIdleCallback(workLoop)

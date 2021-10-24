@@ -33,20 +33,114 @@ function createTextNode(text) {
   };
 }
 
+function createDom(fiber) {}
+
+function commitRoot() {
+  // TODO add nodes to dom
+  commitWork(wipRoot.child);
+  wipRoot = null;
+}
+
+function commitWork(fiber) {
+  if (!fiber) {
+    return;
+  }
+
+  var domParent = fiber.parent.dom;
+  domParent.appendChild(fiber.dom);
+  commitWork(fiber.child);
+  commitWork(fiber.sibling);
+}
+
 function render(element, container) {
-  var dom = element.type == "TEXT_ELEMENT" ? document.createTextNode("") : document.createElement(element.type);
-
-  var isProperty = function isProperty(key) {
-    return key !== "children";
+  wipRoot = {
+    dom: container,
+    props: {
+      children: [element]
+    }
   };
+  nextUnitOfWork = wipRoot;
+}
 
-  Object.keys(element.props).filter(isProperty).forEach(function (name) {
-    dom[name] = element.props[name];
-  });
-  element.props.children.forEach(function (child) {
-    return render(child, dom);
-  });
-  container.appendChild(dom);
+var nextUnitOfWork = null;
+var wipRoot = null; // 在我们完成每个单元后，如果有任何其他需要做的事情，我们会让浏览器中断渲染。
+
+function workLoop(deadline) {
+  var shouldYield = false;
+
+  while (nextUnitOfWork && !shouldYield) {
+    nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
+    shouldYield = deadline.timeRemaining() < 1;
+  }
+
+  requestIdleCallback(workLoop);
+}
+
+function performUnitOfWork(fiber) {
+  // TODO add dom node
+  if (!fiber.dom) {
+    fiber.dom = createDom(fiber);
+  } // TODO create new fibers
+
+
+  var elements = fiber.props.children;
+  reconcileChildren(fiber, elements); // TODO return next unit of work
+
+  if (fiber.child) {
+    return fiber.child;
+  }
+
+  var nextFiber = fiber;
+
+  while (nextFiber) {
+    if (nextFiber.sibling) {
+      return nextFiber.sibling;
+    }
+
+    nextFiber = nextFiber.parent;
+  }
+}
+
+function reconcileChildren(wipFiber, elements) {
+  var index = 0;
+  var oldFiber = wipFiber.alternate && wipFiber.alternate.child;
+  var prevSibling = null;
+
+  while (index < elements.length || oldFiber != null) {
+    var _element = elements[index];
+    var sameType = oldFiber && _element && _element.type == oldFiber.type;
+
+    if (sameType) {
+      newFiber = {
+        type: oldFiber.type,
+        props: _element.props,
+        dom: oldFiber.dom,
+        parent: wipFiber,
+        alternate: oldFiber,
+        effectTag: "UPDATE"
+      };
+    }
+
+    if (_element && !sameType) {}
+
+    if (oldFiber && !sameType) {}
+
+    var newFiber = {
+      type: _element.type,
+      props: _element.props,
+      parent: wipFiber,
+      dom: null
+    };
+
+    if (index === 0) {
+      wipFiber.child = _element;
+    } else {
+      prevSibling.sibling = newFiber;
+    }
+
+    prevSibling = newFiber;
+    index++;
+  }
 }
 
 var Didact = {

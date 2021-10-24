@@ -56,6 +56,8 @@ function workLoop(deadline) {
     requestIdleCallback(workLoop)
 }
 
+requestIdleCallback(workLoop)
+
 function performUnitOfWork(nextUnitOfWork) {
 
 }
