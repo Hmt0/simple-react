@@ -33,15 +33,29 @@ function createTextNode(text) {
   };
 }
 
-function createDom(fiber) {}
+function createDom(fiber) {
+  var dom = fiber.type == "TEXT_ELEMENT" ? document.createTextNode("") : document.createElement(fiber.type);
+  console.log("dom", dom);
+
+  var isProperty = function isProperty(key) {
+    return key !== "children";
+  };
+
+  Object.keys(fiber.props).filter(isProperty).forEach(function (name) {
+    dom[name] = fiber.props[name];
+  });
+  return dom;
+}
 
 function render(element, container) {
+  console.log("container", container);
   nextUnitOfWork = {
     dom: container,
     props: {
       children: [element]
     }
   };
+  console.log("render", nextUnitOfWork);
 }
 
 var nextUnitOfWork = null; // 在我们完成每个单元后，如果有任何其他需要做的事情，我们会让浏览器中断渲染。
@@ -63,11 +77,11 @@ function performUnitOfWork(fiber) {
   console.log("next", fiber); // TODO add dom node
 
   if (!fiber.dom) {
-    // fiber.dom = createDom(fiber)
-    fiber.dom = createElement(fiber);
+    fiber.dom = createDom(fiber);
   }
 
   if (fiber.parent) {
+    console.log("parent", fiber.parent);
     fiber.parent.dom.appendChild(fiber.dom);
   } // TODO create new fibers
 
@@ -84,6 +98,7 @@ function performUnitOfWork(fiber) {
       parent: fiber,
       dom: null
     };
+    console.log("newFiber", newFiber);
 
     if (index === 0) {
       fiber.child = _element;
@@ -97,6 +112,7 @@ function performUnitOfWork(fiber) {
 
 
   if (fiber.child) {
+    console.log("fiber", fiber.dom, "child", fiber.child.type);
     return fiber.child;
   }
 

@@ -23,16 +23,30 @@ function createTextNode(text) {
 }
 
 function createDom(fiber) {
+    const dom =
+      fiber.type == "TEXT_ELEMENT"
+        ? document.createTextNode("")
+        : document.createElement(fiber.type)
+    console.log("dom", dom)
+    const isProperty = key => key !== "children"
+    Object.keys(fiber.props)
+      .filter(isProperty)
+      .forEach(name => {
+        dom[name] = fiber.props[name]
+      })
 
+    return dom
 }
 
 function render(element, container) {
+    console.log("container", container)
     nextUnitOfWork = {
         dom: container,
         props: {
             children: [element],
         },
     }
+    console.log("render", nextUnitOfWork)
 }
 
 let nextUnitOfWork = null
@@ -56,10 +70,10 @@ function performUnitOfWork(fiber) {
     console.log("next", fiber)
     // TODO add dom node
     if(!fiber.dom) {
-        // fiber.dom = createDom(fiber)
-        fiber.dom = createElement(fiber)
+        fiber.dom = createDom(fiber)
     }
     if(fiber.parent) {
+        console.log("parent", fiber.parent)
         fiber.parent.dom.appendChild(fiber.dom)
     }
     // TODO create new fibers
@@ -77,6 +91,8 @@ function performUnitOfWork(fiber) {
             dom: null
         }
 
+        console.log("newFiber", newFiber.type)
+
         if(index === 0) {
             fiber.child = element
         } else {
@@ -88,6 +104,7 @@ function performUnitOfWork(fiber) {
     }
     // TODO return next unit of work
     if(fiber.child) {
+        console.log("fiber", fiber.dom, "child", fiber.child.type)
         return fiber.child
     }
     let nextFiber = fiber
