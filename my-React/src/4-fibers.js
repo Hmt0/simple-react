@@ -74,6 +74,7 @@ function performUnitOfWork(fiber) {
     }
     if(fiber.parent) {
         console.log("parent", fiber.parent)
+        // 插入新节点
         fiber.parent.dom.appendChild(fiber.dom)
     }
     // TODO create new fibers
@@ -91,10 +92,10 @@ function performUnitOfWork(fiber) {
             dom: null
         }
 
-        console.log("newFiber", newFiber.type)
+        console.log("newFiber============", newFiber)
 
         if(index === 0) {
-            fiber.child = element
+            fiber.child = newFiber
         } else {
             prevSibling.sibling = newFiber
         }
@@ -104,7 +105,7 @@ function performUnitOfWork(fiber) {
     }
     // TODO return next unit of work
     if(fiber.child) {
-        console.log("fiber", fiber.dom, "child", fiber.child.type)
+        console.log("fiber", fiber.dom, "child", fiber.child)
         return fiber.child
     }
     let nextFiber = fiber

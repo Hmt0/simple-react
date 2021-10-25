@@ -33,6 +33,19 @@ function createTextNode(text) {
   };
 }
 
+function createDom(fiber) {
+  var dom = fiber.type == "TEXT_ELEMENT" ? document.createTextNode("") : document.createElement(fiber.type);
+
+  var isProperty = function isProperty(key) {
+    return key !== "children";
+  };
+
+  Object.keys(fiber.props).filter(isProperty).forEach(function (name) {
+    dom[name] = fiber.props[name];
+  });
+  return dom;
+}
+
 function commitRoot() {
   // TODO add nodes to dom
   console.log("wiproot child", wipRoot.child);
@@ -41,8 +54,6 @@ function commitRoot() {
 }
 
 function commitWork(fiber) {
-  console.log("fiber", fiber, fiber.parent);
-
   if (!fiber) {
     return;
   }
@@ -85,7 +96,7 @@ function performUnitOfWork(fiber) {
   console.log("performUnitOfWork", fiber); // TODO add dom node
 
   if (!fiber.dom) {
-    fiber.dom = createElement(fiber);
+    fiber.dom = createDom(fiber);
   } // TODO create new fibers
 
 
@@ -103,7 +114,7 @@ function performUnitOfWork(fiber) {
     };
 
     if (index === 0) {
-      fiber.child = _element;
+      fiber.child = newFiber;
     } else {
       prevSibling.sibling = newFiber;
     }

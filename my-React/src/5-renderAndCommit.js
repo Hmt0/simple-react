@@ -22,6 +22,20 @@ function createTextNode(text) {
     }
 }
 
+function createDom(fiber) {
+    const dom =
+      fiber.type == "TEXT_ELEMENT"
+        ? document.createTextNode("")
+        : document.createElement(fiber.type)
+    const isProperty = key => key !== "children"
+    Object.keys(fiber.props)
+      .filter(isProperty)
+      .forEach(name => {
+        dom[name] = fiber.props[name]
+      })
+
+    return dom
+}
 
 function commitRoot() {
     // TODO add nodes to dom
@@ -31,7 +45,6 @@ function commitRoot() {
 }
 
 function commitWork(fiber) {
-    console.log("fiber", fiber, fiber.parent)
     if(!fiber) {
         return
     }
@@ -74,7 +87,7 @@ function performUnitOfWork(fiber) {
     console.log("performUnitOfWork", fiber)
     // TODO add dom node
     if(!fiber.dom) {
-        fiber.dom = createElement(fiber)
+        fiber.dom = createDom(fiber)
     }
     // TODO create new fibers
     const elements = fiber.props.children
@@ -92,7 +105,7 @@ function performUnitOfWork(fiber) {
         }
 
         if(index === 0) {
-            fiber.child = element
+            fiber.child = newFiber
         } else {
             prevSibling.sibling = newFiber
         }
