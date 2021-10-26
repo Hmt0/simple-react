@@ -33,11 +33,69 @@ function createTextNode(text) {
   };
 }
 
-function createDom(fiber) {}
+function createDom(fiber) {
+  var dom = fiber.type == "TEXT_ELEMENT" ? document.createTextNode("") : document.createElement(fiber.type);
+
+  var isProperty = function isProperty(key) {
+    return key !== "children";
+  };
+
+  Object.keys(fiber.props).filter(isProperty).forEach(function (name) {
+    dom[name] = fiber.props[name];
+  });
+  return dom;
+}
+
+var isEvent = function isEvent(key) {
+  return key.startsWith("on");
+};
+
+var isProperty = function isProperty(key) {
+  return key != "children" && !isEvent(key);
+};
+
+var isNew = function isNew(prev, next) {
+  return function (key) {
+    return prev[key] != next[key];
+  };
+}; // 新fiber props不等于旧fiber props
+
+
+var isGone = function isGone(prev, next) {
+  return function (key) {
+    return !(key in next);
+  };
+}; // key不属于新fiber props
+
+
+function updateDom(dom, prevProps, nextProps) {
+  // Remove old or changed event listeners
+  Object.keys(prevProps).filter(isEvent).filter(function (key) {
+    return !(key in nextProps) || isNew(prevProps, nextProps)(key);
+  }).forEach(function (name) {
+    var eventType = name.toLowerCase().substring(2);
+    dom.removeEventListener(eventType, prevProps[name]);
+  }); // Add event listeners
+
+  Object.keys(nextProps).filter(isEvent).filter(isNew(prevProps, nextProps)).forEach(function (name) {
+    var eventType = name.toLowerCase().substring(2);
+    dom.addEventListener(eventType, nextProps[name]);
+  }); // Remove old properties
+
+  Object.keys(prevProps).filter(isProperty).filter(isGone(prevProps, nextProps)).forEach(function (name) {
+    dom[name] = "";
+  }); // set new changed properties
+
+  Object.keys(nextProps).filter(isProperty).filter(isNew(newProps, nextProps)).forEach(function (name) {
+    dom[name] = nextProps[name];
+  });
+}
 
 function commitRoot() {
   // TODO add nodes to dom
+  deletions.forEach(commitWork);
   commitWork(wipRoot.child);
+  currentRoot = wipRoot;
   wipRoot = null;
 }
 
@@ -47,7 +105,15 @@ function commitWork(fiber) {
   }
 
   var domParent = fiber.parent.dom;
-  domParent.appendChild(fiber.dom);
+
+  if (fiber.effectTag === "PLACEMENT" && fiber.dom != null) {
+    domParent.appendChild(fiber.dom);
+  } else if (fiber.effectTag === "DELETION") {
+    domParent.removeChild(fiber.dom);
+  } else if (fiber.effectTag === "UPDATE" && fiber.dom != null) {
+    updateDom(fiber.dom, fiber.alternate.props, fiber.props);
+  }
+
   commitWork(fiber.child);
   commitWork(fiber.sibling);
 }
@@ -57,13 +123,18 @@ function render(element, container) {
     dom: container,
     props: {
       children: [element]
-    }
+    },
+    alternate: currentRoot // link to old fiber
+
   };
   nextUnitOfWork = wipRoot;
+  deletions = [];
 }
 
 var nextUnitOfWork = null;
-var wipRoot = null; // 在我们完成每个单元后，如果有任何其他需要做的事情，我们会让浏览器中断渲染。
+var wipRoot = null;
+var currentRoot = null;
+var deletions = []; // 在我们完成每个单元后，如果有任何其他需要做的事情，我们会让浏览器中断渲染。
 
 function workLoop(deadline) {
   var shouldYield = false;
@@ -73,8 +144,14 @@ function workLoop(deadline) {
     shouldYield = deadline.timeRemaining() < 1;
   }
 
+  if (!nextUnitOfWork && wipRoot) {
+    commitRoot();
+  }
+
   requestIdleCallback(workLoop);
 }
+
+requestIdleCallback(workLoop);
 
 function performUnitOfWork(fiber) {
   // TODO add dom node
@@ -102,12 +179,14 @@ function performUnitOfWork(fiber) {
 }
 
 function reconcileChildren(wipFiber, elements) {
+  // wip -> work in progress
   var index = 0;
   var oldFiber = wipFiber.alternate && wipFiber.alternate.child;
-  var prevSibling = null;
+  var prevSibling = null; // 遍历孩子和旧fiber的孩子
 
   while (index < elements.length || oldFiber != null) {
     var _element = elements[index];
+    var newFiber = null;
     var sameType = oldFiber && _element && _element.type == oldFiber.type;
 
     if (sameType) {
@@ -115,25 +194,37 @@ function reconcileChildren(wipFiber, elements) {
         type: oldFiber.type,
         props: _element.props,
         dom: oldFiber.dom,
+        // 不需要修改dom
         parent: wipFiber,
         alternate: oldFiber,
         effectTag: "UPDATE"
       };
+    } // 创建新fiber
+
+
+    if (_element && !sameType) {
+      newFiber = {
+        type: _element.type,
+        props: _element.props,
+        dom: null,
+        // 之后新建dom节点
+        parent: wipFiber,
+        alternate: null,
+        effectTag: "PLACEMENT"
+      };
     }
 
-    if (_element && !sameType) {}
+    if (oldFiber && !sameType) {
+      oldFiber.effectTag = "DELETION";
+      deletions.push(oldFiber);
+    }
 
-    if (oldFiber && !sameType) {}
-
-    var newFiber = {
-      type: _element.type,
-      props: _element.props,
-      parent: wipFiber,
-      dom: null
-    };
+    if (oldFiber) {
+      oldFiber = oldFiber.sibling;
+    }
 
     if (index === 0) {
-      wipFiber.child = _element;
+      wipFiber.child = newFiber;
     } else {
       prevSibling.sibling = newFiber;
     }
