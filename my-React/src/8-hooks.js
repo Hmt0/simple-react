@@ -284,6 +284,7 @@ function updateFunctionComponent(fiber) {
     const children = [fiber.type(fiber.props)]
     console.log("fiber.type是函数：", fiber.type)
     console.log("执行函数后得到子组件：", children)
+    console.log("wipFiber.hooks:", wipFiber.hooks)
     reconcileChildren(fiber, children)
     console.log("updateFunctionComponent阶段============>")
 }
@@ -378,13 +379,14 @@ const Didact = {
 
 /** @jsx Didact.createElement */
 function Counter() {
-    const [state, setState] = Didact.useState(1)
-    const [count, setCount] = Didact.useState(0)
+    const [state0, setState0] = Didact.useState(0)
+    const [satte1, setState1] = Didact.useState(1)
+    const [satte2, setState2] = Didact.useState(2)
     return (
         <h1 onClick={() => {
-            setState(c => c+1)
-            setCount(c => c+1)}}> 
-            Count: {state}
+            setState0(c => c+1)
+            setCount1(c => c+1)}}> 
+            Count: {state0}
         </h1>
     )
 }

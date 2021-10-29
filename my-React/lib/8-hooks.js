@@ -243,14 +243,18 @@ function useState(initial) {
     queue: []
   };
   var actions = oldHook ? oldHook.queue : [];
-  console.log("hook:", hook, "\noldhook", oldHook, "\nactions", actions); // 执行useState回调
+  console.log("hook:", hook, "\noldhook", oldHook, "\nactions", actions); // 执行oldHook中的useState回调
 
   actions.forEach(function (action) {
     hook.state = action(hook.state);
   });
 
   var setState = function setState(action) {
-    console.log("<================执行setState");
+    console.log("<================执行setState"); // 闭包，保存着当前fiber的hook
+    // 执行setState并没有立即执行action，而是把action添加到hook的队列中
+    // 并更新wipRoot引发重新渲染
+    // 在更新函数组件的时候重新执行useState里面的action队列
+
     hook.queue.push(action);
     console.log("action:", action);
     console.log("更新hook.queue:", hook.queue);
@@ -262,7 +266,8 @@ function useState(initial) {
     nextUnitOfWork = wipRoot;
     console.log("更新nextUnitOfWork:", nextUnitOfWork);
     deletions = [];
-  };
+  }; // 更新当前fiber的hooks
+
 
   wipFiber.hooks.push(hook);
   hookIndex++;
@@ -279,6 +284,7 @@ function updateFunctionComponent(fiber) {
   var children = [fiber.type(fiber.props)];
   console.log("fiber.type是函数：", fiber.type);
   console.log("执行函数后得到子组件：", children);
+  console.log("wipFiber.hooks:", wipFiber.hooks);
   reconcileChildren(fiber, children);
   console.log("updateFunctionComponent阶段============>");
 }
@@ -370,23 +376,31 @@ var Didact = {
 /** @jsx Didact.createElement */
 
 function Counter() {
-  var _Didact$useState = Didact.useState(1),
+  var _Didact$useState = Didact.useState(0),
       _Didact$useState2 = _slicedToArray(_Didact$useState, 2),
-      state = _Didact$useState2[0],
-      setState = _Didact$useState2[1];
+      state0 = _Didact$useState2[0],
+      setState0 = _Didact$useState2[1];
 
-  var _Didact$useState3 = Didact.useState(0),
+  var _Didact$useState3 = Didact.useState(1),
       _Didact$useState4 = _slicedToArray(_Didact$useState3, 2),
-      count = _Didact$useState4[0],
-      setCount = _Didact$useState4[1];
+      satte1 = _Didact$useState4[0],
+      setState1 = _Didact$useState4[1];
+
+  var _Didact$useState5 = Didact.useState(2),
+      _Didact$useState6 = _slicedToArray(_Didact$useState5, 2),
+      satte2 = _Didact$useState6[0],
+      setState2 = _Didact$useState6[1];
 
   return Didact.createElement("h1", {
     onClick: function onClick() {
-      return setState(function (c) {
+      setState0(function (c) {
+        return c + 1;
+      });
+      setCount1(function (c) {
         return c + 1;
       });
     }
-  }, "Count: ", state);
+  }, "Count: ", state0);
 }
 
 var element = Didact.createElement(Counter, null); // 此处是函数式组件，处理方式不同于一般组件
